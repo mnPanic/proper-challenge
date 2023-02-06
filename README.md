@@ -26,6 +26,15 @@ value which is replaced with `data-src` later. So I considered both.
 I found the scraping framework [`colly`](http://go-colly.org/) which seems easy
 enough to use, so I'll use that from now on.
 
+Program usage:
+
+```bash
+go run main.go
+```
+
+It will download the first 10 images from the site to a local `images/`
+directory (relative path), that should exist.
+
 ## Case 2
 
 > **Assignment**: Extend the program to accept a parameter named `amount` that
@@ -40,6 +49,15 @@ more complicated that involves scraping to go to the next page.
 To support flags, I'll just use the [`flag`](https://pkg.go.dev/flag) pkg
 because it's simple. If it was more complicated I'd consider using something
 like [`cobra`](https://github.com/spf13/cobra)
+
+Program usage:
+
+```bash
+go run main.go --amount 20
+```
+
+It will download the first `amount` images from the site to a local `images/`
+directory (relative path), that will be created if it doesn't exist.
 
 ### Extra: Fix repeated images
 
@@ -78,6 +96,17 @@ goroutines which will download and store them.
 
 Note: This won't necessarily be parallel, but it will be concurrent (and that's
 all we can do).
+
+Program usage:
+
+```bash
+go run main.go --amount 20 --threads 3
+```
+
+It will download the first `amount` images from the site to a local `images/`
+directory (relative path), that will be created if it doesn't exist. It uses the
+number of threads configured with the `threads` argument to download the images
+concurrently.
 
 ## References
 
