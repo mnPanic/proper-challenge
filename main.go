@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -12,8 +13,12 @@ import (
 	"github.com/gocolly/colly"
 )
 
+var amount = flag.Int("amount", 10, "how many memes to download")
+
 func main() {
-	err := collectAndDownloadImages()
+	flag.Parse()
+	fmt.Printf("Downloading %d memes\n", *amount)
+	err := collectAndDownloadImages(*amount)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -21,17 +26,31 @@ func main() {
 	fmt.Println("Images saved successfully")
 }
 
-func collectAndDownloadImages() error {
-	urls := collectImageURLsFrom("https://icanhas.cheezburger.com/")
-	fmt.Printf("Found %d images\n", len(urls))
+func collectAndDownloadImages(amount int) error {
+	var imageURLs []string
+	currentPage := 1
+	for len(imageURLs) < amount {
+		urls := collectImageURLsFrom(cheezburgerURLForPage(currentPage))
+		fmt.Printf("Found %d images\n", len(urls))
 
-	// Assume that there will always be at least 10 memes on the home page
-	err := downloadImages(urls[0:10], "images/")
+		imageURLs = append(imageURLs, urls...)
+		currentPage++
+	}
+
+	err := downloadImages(imageURLs[0:amount], "images/")
 	if err != nil {
 		return fmt.Errorf("downloading images: %s", err)
 	}
 
 	return nil
+}
+
+func cheezburgerURLForPage(pageNumber int) string {
+	if pageNumber == 1 {
+		return "https://icanhas.cheezburger.com/"
+	}
+
+	return fmt.Sprintf("https://icanhas.cheezburger.com/page/%d", pageNumber)
 }
 
 func downloadImages(urls []string, basePath string) error {
