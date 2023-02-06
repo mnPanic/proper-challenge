@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gocolly/colly"
@@ -72,8 +73,8 @@ func cheezburgerURLForPage(pageNumber int) string {
 
 func downloadImages(urls []string, basePath string) error {
 	for i, url := range urls {
-		name := fmt.Sprintf("%d.jpg", i+1) // i+1 to number from 1 and not 0
-		path := filepath.Join(basePath, name)
+		// i+1 to number from 1 and not 0
+		path := filepath.Join(basePath, strconv.Itoa(i+1))
 
 		err := downloadImage(url, path)
 		if err != nil {
@@ -97,13 +98,33 @@ func downloadImage(url string, filename string) error {
 		return fmt.Errorf("reading body: %s", err)
 	}
 
+	ext, err := detectFileExtension(resp.Header.Get("Content-Type"))
+	if err != nil {
+		return err
+	}
+
 	// Permissions don't matter much here
-	err = os.WriteFile(filename, body, 0777)
+	err = os.WriteFile(filename+ext, body, 0777)
 	if err != nil {
 		return fmt.Errorf("saving: %s", err)
 	}
 
 	return nil
+}
+
+func detectFileExtension(contentType string) (string, error) {
+	contentTypeToExt := map[string]string{
+		"image/jpeg": ".jpg",
+		"image/png":  ".png",
+		"image/gif":  ".gif",
+	}
+
+	ext, ok := contentTypeToExt[contentType]
+	if !ok {
+		return "", fmt.Errorf("unexpected content type '%s'", contentType)
+	}
+
+	return ext, nil
 }
 
 func collectImageURLsFrom(pageURL string) []string {
