@@ -30,37 +30,54 @@ func main() {
 }
 
 func collectAndDownloadImages(amount int) error {
-	var imageURLs []string
-	currentPage := 1
-	for len(imageURLs) < amount {
-		urls := collectImageURLsFrom(cheezburgerURLForPage(currentPage))
-		fmt.Printf("Found %d images\n", len(urls))
-
-		urls, err := convertToFullSizeURLs(urls)
-		if err != nil {
-			return fmt.Errorf("converting image urls: %s", err)
-		}
-
-		imageURLs = append(imageURLs, urls...)
-
-		prevLen := len(imageURLs)
-		imageURLs = dedupURLs(imageURLs)
-		fmt.Printf("Removed %d duplicates\n", prevLen-len(imageURLs))
-		currentPage++
-	}
-
-	imagesDirectory := "images/"
-	err := os.MkdirAll(imagesDirectory, 0777)
+	imageURLs, err := collectImageURLs(amount)
 	if err != nil {
-		return fmt.Errorf("creating destination directory %s: %s", imagesDirectory, err)
+		return err
 	}
 
+	const imagesDirectory = "images/"
 	err = downloadImages(imageURLs[0:amount], imagesDirectory)
 	if err != nil {
 		return fmt.Errorf("downloading images: %s", err)
 	}
 
 	return nil
+}
+
+func collectImageURLs(amount int) ([]string, error) {
+	// Images are duplicated because they appear in the "Hot today" section and
+	// on the homepage. Because we don't want to download them twice, we remove
+	// the duplicates. We know the URLs will be the same because we converted
+	// all of them to full size
+
+	seenImageURLs := map[string]bool{}
+	var imageURLs []string
+
+	currentPage := 1
+	for len(imageURLs) < amount {
+		urls := collectImageURLsFrom(cheezburgerURLForPage(currentPage))
+
+		urls, err := convertToFullSizeURLs(urls)
+		if err != nil {
+			return nil, fmt.Errorf("converting image urls: %s", err)
+		}
+
+		duplicates := 0
+		for _, url := range urls {
+			if _, seen := seenImageURLs[url]; !seen {
+				seenImageURLs[url] = true
+				imageURLs = append(imageURLs, url)
+			} else {
+				duplicates++
+			}
+		}
+
+		fmt.Printf("Found %d images (%d duplicates, %d new)\n", len(urls), duplicates, len(urls)-duplicates)
+
+		currentPage++
+	}
+
+	return imageURLs, nil
 }
 
 func cheezburgerURLForPage(pageNumber int) string {
@@ -72,6 +89,11 @@ func cheezburgerURLForPage(pageNumber int) string {
 }
 
 func downloadImages(urls []string, basePath string) error {
+	err := os.MkdirAll(basePath, 0777)
+	if err != nil {
+		return fmt.Errorf("creating destination directory %s: %s", basePath, err)
+	}
+
 	for i, url := range urls {
 		// i+1 to number from 1 and not 0
 		path := filepath.Join(basePath, strconv.Itoa(i+1))
@@ -212,24 +234,4 @@ func getFullSizeVersion(imageURL string) (string, error) {
 	url.Path = fmt.Sprintf("full/%s", parts[1])
 
 	return url.String(), nil
-}
-
-func dedupURLs(urls []string) []string {
-	// Images are duplicated because they appear in the "Hot today" section and
-	// on the homepage. Because we don't want to download them twice, we remove
-	// the duplicates. We know the URLs will be the same because we converted
-	// all of them to full size
-
-	allURLs := map[string]bool{}
-	var uniqueURLs []string
-
-	for _, url := range urls {
-		if _, exists := allURLs[url]; !exists {
-			allURLs[url] = true
-			uniqueURLs = append(uniqueURLs, url)
-		}
-	}
-
-	return uniqueURLs
-
 }
