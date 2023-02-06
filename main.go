@@ -117,6 +117,7 @@ func downloadImages(urls []string, basePath string, threads int) error {
 	for i, url := range urls {
 		// i+1 to number from 1 and not 0
 		path := filepath.Join(basePath, strconv.Itoa(i+1))
+		fmt.Printf("image #%d: %s\n", i+1, url)
 
 		imagesToDownload <- imageRequest{url: url, path: path}
 	}
@@ -249,12 +250,16 @@ func getFullSizeVersion(imageURL string) (string, error) {
 	//
 	//	https://i.chzbrg.com/{size}/{id1}/{id2}/{slug}
 	//
-	// We want the full size version and not a downscaled thumbnail.
+	// We want the full size version and not a downscaled thumbnail. This will
+	// also help prevent downloading the same images more than once.
 	//
 	// Some examples:
 	// - https://i.chzbgr.com/full/9730332160/h6860EF7A/just-no
-	// -
-	// https://i.chzbgr.com/thumb1200/19206661/h5E69E7B5/feral-trapped-last-week-he-has-strong-feelings-about-domestication-me-and-the-horse-i-rode-in-on
+	// - https://i.chzbgr.com/thumb1200/19206661/h5E69E7B5/feral-trapped-last-week-he-has-strong-feelings-about-domestication-me-and-the-horse-i-rode-in-on
+	//
+	// The slug doesn't matter, and sometimes slugs are different (so we
+	// download them differently). To avoid that, also remove the slug.
+
 	url, err := url.Parse(imageURL)
 	if err != nil {
 		return "", fmt.Errorf("parse: %s", err)
@@ -262,13 +267,13 @@ func getFullSizeVersion(imageURL string) (string, error) {
 
 	// Trim the leading / and split by / to separate the size from the rest of
 	// the path so we can replace it.
-	parts := strings.SplitN(strings.TrimPrefix(url.Path, "/"), "/", 2)
-	if len(parts) != 2 {
-		return "", errors.New("unexpected path format")
+	parts := strings.Split(strings.TrimPrefix(url.Path, "/"), "/")
+	if len(parts) != 4 {
+		return "", errors.New("unexpected path format, expected {size}/{id1}/{id2}/{slug}")
 	}
 
-	// parts[0] is the size and parts[1] is the rest of the path
-	url.Path = fmt.Sprintf("full/%s", parts[1])
+	// Replace size for full and remove the slug
+	url.Path = fmt.Sprintf("full/%s/%s", parts[1], parts[2])
 
 	return url.String(), nil
 }
