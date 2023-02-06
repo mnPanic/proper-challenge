@@ -16,12 +16,16 @@ import (
 	"github.com/gocolly/colly"
 )
 
-var amount = flag.Int("amount", 10, "how many memes to download")
+// Command line flags
+var (
+	amount  = flag.Int("amount", 10, "how many memes to download")
+	threads = flag.Int("threads", 1, "number of threads that will download images concurrently (max: 5)")
+)
 
 func main() {
 	flag.Parse()
-	fmt.Printf("Downloading %d memes\n", *amount)
-	err := collectAndDownloadImages(*amount)
+	fmt.Printf("Downloading %d memes with %d threads\n", *amount, *threads)
+	err := collectAndDownloadImages(*amount, *threads)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -29,14 +33,16 @@ func main() {
 	fmt.Println("Images saved successfully")
 }
 
-func collectAndDownloadImages(amount int) error {
+func collectAndDownloadImages(amount int, threads int) error {
 	imageURLs, err := collectImageURLs(amount)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("Downloading images")
+
 	const imagesDirectory = "images/"
-	err = downloadImages(imageURLs[0:amount], imagesDirectory)
+	err = downloadImages(imageURLs[0:amount], imagesDirectory, threads)
 	if err != nil {
 		return fmt.Errorf("downloading images: %s", err)
 	}
@@ -88,23 +94,54 @@ func cheezburgerURLForPage(pageNumber int) string {
 	return fmt.Sprintf("https://icanhas.cheezburger.com/page/%d", pageNumber)
 }
 
-func downloadImages(urls []string, basePath string) error {
+type imageRequest struct {
+	url  string
+	path string
+}
+
+func downloadImages(urls []string, basePath string, threads int) error {
 	err := os.MkdirAll(basePath, 0777)
 	if err != nil {
 		return fmt.Errorf("creating destination directory %s: %s", basePath, err)
+	}
+
+	// Make a buffered channel so we can schedule all the jobs without blocking
+	numJobs := len(urls)
+	imagesToDownload := make(chan imageRequest, numJobs)
+	results := make(chan error, numJobs)
+
+	for w := 0; w < threads; w++ {
+		go imageDownloadWorker(imagesToDownload, results)
 	}
 
 	for i, url := range urls {
 		// i+1 to number from 1 and not 0
 		path := filepath.Join(basePath, strconv.Itoa(i+1))
 
-		err := downloadImage(url, path)
+		imagesToDownload <- imageRequest{url: url, path: path}
+	}
+
+	// Grab all results, check no download failed
+	for r := 0; r < numJobs; r++ {
+		err := <-results
 		if err != nil {
-			return fmt.Errorf("downloading image #%d: %s", i, err)
+			return err
 		}
 	}
 
 	return nil
+}
+
+func imageDownloadWorker(imagesToDownload chan imageRequest, results chan error) {
+	for image := range imagesToDownload {
+		err := downloadImage(image.url, image.path)
+		var result error
+		if err != nil {
+			result = fmt.Errorf("downloading image %s: %s", image.url, err)
+		}
+
+		results <- result
+	}
 }
 
 func downloadImage(url string, filename string) error {

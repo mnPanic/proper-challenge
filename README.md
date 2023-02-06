@@ -62,6 +62,23 @@ image. Using `full` you get the full scale image.
 To only download one version of every image, I'll change the URLs so that they
 are all `full`. Then remove the duplicates.
 
+## Case 3
+
+> **Assignment**: Enable the above program to run on multiple threads. With an additional Parameter sent as `threads` that is a number
+between 1 and 5, parallelize the process while continuing to support the
+`amount` flag.
+
+Parallelizing scrapping the pages for images wouldn't be of much use, as we
+don't know in advance how many images each has and thus how many pages we need
+to scrap to reach the desired `amount`.
+
+I'll parallelize downloading images. To do so, there will be a channel that has
+the desired image along with the filename, and there'll be a group of worker
+goroutines which will download and store them.
+
+Note: This won't necessarily be parallel, but it will be concurrent (and that's
+all we can do).
+
 ## References
 
 - Web Scraping
