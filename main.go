@@ -1,11 +1,13 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,11 +35,26 @@ func collectAndDownloadImages(amount int) error {
 		urls := collectImageURLsFrom(cheezburgerURLForPage(currentPage))
 		fmt.Printf("Found %d images\n", len(urls))
 
+		urls, err := convertToFullSizeURLs(urls)
+		if err != nil {
+			return fmt.Errorf("converting image urls: %s", err)
+		}
+
 		imageURLs = append(imageURLs, urls...)
+
+		prevLen := len(imageURLs)
+		imageURLs = dedupURLs(imageURLs)
+		fmt.Printf("Removed %d duplicates\n", prevLen-len(imageURLs))
 		currentPage++
 	}
 
-	err := downloadImages(imageURLs[0:amount], "images/")
+	imagesDirectory := "images/"
+	err := os.MkdirAll(imagesDirectory, 0777)
+	if err != nil {
+		return fmt.Errorf("creating destination directory %s: %s", imagesDirectory, err)
+	}
+
+	err = downloadImages(imageURLs[0:amount], imagesDirectory)
 	if err != nil {
 		return fmt.Errorf("downloading images: %s", err)
 	}
@@ -131,4 +148,67 @@ func collectImageURLsFrom(pageURL string) []string {
 	c.Visit(pageURL)
 
 	return imgURLs
+}
+
+func convertToFullSizeURLs(urls []string) ([]string, error) {
+	var fullSizeURLs []string
+	for _, url := range urls {
+		fullSizeURL, err := getFullSizeVersion(url)
+		if err != nil {
+			return nil, fmt.Errorf("can't get full size version of '%s': %s", url, err)
+		}
+
+		fullSizeURLs = append(fullSizeURLs, fullSizeURL)
+	}
+
+	return fullSizeURLs, nil
+}
+
+func getFullSizeVersion(imageURL string) (string, error) {
+	// Cheezburger image urls have the following format
+	//
+	//	https://i.chzbrg.com/{size}/{id1}/{id2}/{slug}
+	//
+	// We want the full size version and not a downscaled thumbnail.
+	//
+	// Some examples:
+	// - https://i.chzbgr.com/full/9730332160/h6860EF7A/just-no
+	// -
+	// https://i.chzbgr.com/thumb1200/19206661/h5E69E7B5/feral-trapped-last-week-he-has-strong-feelings-about-domestication-me-and-the-horse-i-rode-in-on
+	url, err := url.Parse(imageURL)
+	if err != nil {
+		return "", fmt.Errorf("parse: %s", err)
+	}
+
+	// Trim the leading / and split by / to separate the size from the rest of
+	// the path so we can replace it.
+	parts := strings.SplitN(strings.TrimPrefix(url.Path, "/"), "/", 2)
+	if len(parts) != 2 {
+		return "", errors.New("unexpected path format")
+	}
+
+	// parts[0] is the size and parts[1] is the rest of the path
+	url.Path = fmt.Sprintf("full/%s", parts[1])
+
+	return url.String(), nil
+}
+
+func dedupURLs(urls []string) []string {
+	// Images are duplicated because they appear in the "Hot today" section and
+	// on the homepage. Because we don't want to download them twice, we remove
+	// the duplicates. We know the URLs will be the same because we converted
+	// all of them to full size
+
+	allURLs := map[string]bool{}
+	var uniqueURLs []string
+
+	for _, url := range urls {
+		if _, exists := allURLs[url]; !exists {
+			allURLs[url] = true
+			uniqueURLs = append(uniqueURLs, url)
+		}
+	}
+
+	return uniqueURLs
+
 }

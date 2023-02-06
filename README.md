@@ -41,6 +41,27 @@ To support flags, I'll just use the [`flag`](https://pkg.go.dev/flag) pkg
 because it's simple. If it was more complicated I'd consider using something
 like [`cobra`](https://github.com/spf13/cobra)
 
+### Extra: Fix repeated images
+
+Images are being downloaded twice because they appear on the "Hot today" section
+and as a post on the homepage. For example, with this post
+
+![](img/hot-today.png)
+![](img/actual-post.png)
+
+I noticed the sources are very similar, the only thing that changes is a part of
+the URL.
+
+- Hot today source: `https://i.chzbgr.com/thumb400/3749638/h1C7C74B7/at-night-thumbnail-includes-one-black-and-white-picture-of-a-cat-sitting-next-to-a-sleeping-man`
+- Post source: `https://i.chzbgr.com/thumb800/3749638/h1C7C74B7/at-night-thumbnail-includes-one-black-and-white-picture-of-a-cat-sitting-next-to-a-sleeping-man`
+
+The only thing that changes is the first part of the resource, `thumb800` and
+`thumb400`. You can change it to some numbers, like 1200, and receive a scaled
+image. Using `full` you get the full scale image.
+
+To only download one version of every image, I'll change the URLs so that they
+are all `full`. Then remove the duplicates.
+
 ## References
 
 - Web Scraping
