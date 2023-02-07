@@ -1,3 +1,4 @@
+<!-- omit in toc -->
 # Proper Case Challenge
 
 Case Challenge for Proper, part of the interview process
@@ -7,6 +8,15 @@ Participant information
 - Name: Manuel Panichelli
 - Email: panicmanu@gmail.com
 - LinkedIn: [/in/manuel-panichelli/](https://www.linkedin.com/in/manuel-panichelli/)
+
+Contents:
+
+- [Case 1](#case-1)
+- [Case 2](#case-2)
+  - [Extra: Fix repeated images](#extra-fix-repeated-images)
+- [Case 3](#case-3)
+- [Case 4 (Bonus)](#case-4-bonus)
+- [References](#references)
 
 ## Case 1
 
