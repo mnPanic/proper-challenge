@@ -108,6 +108,19 @@ directory (relative path), that will be created if it doesn't exist. It uses the
 number of threads configured with the `threads` argument to download the images
 concurrently.
 
+## Case 4 (Bonus)
+
+> **Assignment:** Describe or showcase a testing strategy for the program. This could be unit, integration, or end to end tests.
+
+To test the program, we need to replace the parts that interact with things
+outside of it that we can't control reliably. This is just the `GET`s to the
+main page to get the image url's, the `GET` to download the images and access to
+the file system.
+
+We can replace them with interfaces and create a test that fixes a certain HTML
+with some images, and check that it downloads them and whatever bytes were
+obtained are saved to the filesystem with the correct extensions.
+
 ## References
 
 - Web Scraping
