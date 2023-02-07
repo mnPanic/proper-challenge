@@ -9,14 +9,37 @@ Participant information
 - Email: panicmanu@gmail.com
 - LinkedIn: [/in/manuel-panichelli/](https://www.linkedin.com/in/manuel-panichelli/)
 
-Contents:
+Each case assignment has its own tag (`case-1`, `case-2`, etc.) and brief section in the README
 
+<!-- omit in toc -->
+## Contents
+
+- [Final program usage](#final-program-usage)
 - [Case 1](#case-1)
 - [Case 2](#case-2)
   - [Extra: Fix repeated images](#extra-fix-repeated-images)
 - [Case 3](#case-3)
 - [Case 4 (Bonus)](#case-4-bonus)
 - [References](#references)
+
+## Final program usage
+
+The program will download the number of memes configured at `amount` from
+http://icanhas.cheezburger.com/, advancing pages when necessary. It will save
+them to a `images/` local directory (relative path to where you're executing the
+program).
+
+Arguments:
+
+- `--amount`: Amount of memes to download (Default: 10)
+- `--threads` (1-5): Number of threads (actually goroutines) to use to download
+  images (Default: 1)
+
+Example:
+
+```bash
+go run main.go --amount 20 --threads 3
+```
 
 ## Case 1
 
