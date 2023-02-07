@@ -64,8 +64,8 @@ directory (relative path), that will be created if it doesn't exist.
 Images are being downloaded twice because they appear on the "Hot today" section
 and as a post on the homepage. For example, with this post
 
-![](img/hot-today.png)
-![](img/actual-post.png)
+![](docs/img/hot-today.png)
+![](docs/img/actual-post.png)
 
 I noticed the sources are very similar, the only thing that changes is a part of
 the URL.
