@@ -121,6 +121,17 @@ We can replace them with interfaces and create a test that fixes a certain HTML
 with some images, and check that it downloads them and whatever bytes were
 obtained are saved to the filesystem with the correct extensions.
 
+To simplify testing of the main functionality, I abstracted away the HTML
+scrapping with an interface
+
+```go
+type Scrapper interface {
+	CollectImageURLsFrom(page string) ([]string, error)
+}
+```
+
+so then I had to test that functionality separately.
+
 ## References
 
 - Web Scraping
